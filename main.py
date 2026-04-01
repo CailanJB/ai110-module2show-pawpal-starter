@@ -20,7 +20,28 @@ def main() -> None:
 
     owner.pets.extend([dog, cat])
 
-    # Add tasks (different durations/priorities/species requirements)
+    # Add tasks OUT OF ORDER (low priority first, then high, mixed durations)
+    dog.tasks.append(Task(
+        task_name="Flea Treatment",
+        description="Apply monthly flea treatment",
+        duration=10,
+        priority=Priority.LOW,
+        category="health",
+        frequency="once",
+        required_for_species=["dog"],
+        completed=True,  # already done — used to test filtering
+    ))
+
+    dog.tasks.append(Task(
+        task_name="Vet Checkup",
+        description="Take both pets to the veterinarian",
+        duration=60,
+        priority=Priority.MEDIUM,
+        category="health",
+        frequency="once",
+        required_for_species=["dog", "cat"],
+    ))
+
     dog.tasks.append(Task(
         task_name="Morning Walk",
         description="Walk the dog around the block",
@@ -42,16 +63,6 @@ def main() -> None:
     ))
 
     cat.tasks.append(Task(
-        task_name="Feed Cat",
-        description="Feed Whiskers lunch",
-        duration=10,
-        priority=Priority.MEDIUM,
-        category="feeding",
-        frequency="daily",
-        required_for_species=["cat"],
-    ))
-
-    cat.tasks.append(Task(
         task_name="Groom Cat",
         description="Brush whiskers and fur",
         duration=20,
@@ -61,45 +72,112 @@ def main() -> None:
         required_for_species=["cat"],
     ))
 
-    # Add a cross-pet task (one-time for both pets)
-    owner_shared_task = Task(
-        task_name="Vet Checkup",
-        description="Take both pets to the veterinarian",
-        duration=60,
+    cat.tasks.append(Task(
+        task_name="Clean Litter Box",
+        description="Scoop and refresh litter box",
+        duration=10,
+        priority=Priority.HIGH,
+        category="hygiene",
+        frequency="daily",
+        required_for_species=["cat"],
+        completed=True,  # already done — used to test filtering
+    ))
+
+    cat.tasks.append(Task(
+        task_name="Feed Cat",
+        description="Feed Whiskers lunch",
+        duration=10,
         priority=Priority.MEDIUM,
-        category="health",
-        frequency="once",
-        required_for_species=["dog", "cat"],
-    )
+        category="feeding",
+        frequency="daily",
+        required_for_species=["cat"],
+    ))
 
-    dog.tasks.append(owner_shared_task)
-
-    # Generate today's schedule for each pet and print
+    # ------------------------------------------------------------------ #
+    #  Generate schedules (generate_daily_plan sorts internally by pri)   #
+    # ------------------------------------------------------------------ #
     today = date.today()
-
-    print("Today's Schedule for Pet Owner:")
-    print("Owner:", owner.name)
-    print("Date:", today)
-    print("============\n")
+    schedules: dict[str, Schedule] = {}
 
     for pet in owner.pets:
         schedule = Schedule(pet=pet, owner=owner, plan_date=today)
         schedule.generate_daily_plan()
+        schedules[pet.name] = schedule
 
-        print(f"Pet: {pet.name} ({pet.species})")
+    # ------------------------------------------------------------------ #
+    #  Print full daily schedule                                           #
+    # ------------------------------------------------------------------ #
+    print("=" * 50)
+    print(f"PAWPAL — Daily Schedule for {owner.name}  ({today})")
+    print("=" * 50)
 
-        if schedule.entries:
-            for entry in schedule.entries:
-                print(f"  - {entry.task.task_name} from {entry.starttime.strftime('%H:%M')} to {entry.endtime.strftime('%H:%M')} ({entry.task.priority.value})")
+    for pet in owner.pets:
+        sched = schedules[pet.name]
+        print(f"\nPet: {pet.name} ({pet.species})")
+        print("-" * 40)
+
+        if sched.entries:
+            for entry in sched.entries:
+                status = "DONE" if entry.task.completed else "pending"
+                print(f"  [{status:7}] {entry.task.task_name:20} {entry.starttime.strftime('%H:%M')}–{entry.endtime.strftime('%H:%M')}  ({entry.task.priority.value})")
         else:
-            print("  - No tasks scheduled")
+            print("  (no tasks scheduled)")
 
-        if schedule.unscheduled_tasks:
-            print("  Unscheduled tasks:")
-            for ut in schedule.unscheduled_tasks:
+        if sched.unscheduled_tasks:
+            print("  Unscheduled:")
+            for ut in sched.unscheduled_tasks:
                 print(f"    * {ut.task_name} ({ut.duration} min, {ut.priority.value})")
 
-        print("")
+    # ------------------------------------------------------------------ #
+    #  Demo: Schedule.filter_tasks — filter by completion status          #
+    # ------------------------------------------------------------------ #
+    print("\n" + "=" * 50)
+    print("FILTER DEMO — Schedule.filter_tasks()")
+    print("=" * 50)
+
+    for pet in owner.pets:
+        sched = schedules[pet.name]
+
+        pending  = sched.filter_tasks(completed=False)
+        done     = sched.filter_tasks(completed=True)
+        all_     = sched.filter_tasks()
+
+        print(f"\n{pet.name}:")
+        print(f"  All tasks  ({len(all_):2}): {[t.task_name for t in all_]}")
+        print(f"  Pending    ({len(pending):2}): {[t.task_name for t in pending]}")
+        print(f"  Completed  ({len(done):2}): {[t.task_name for t in done]}")
+
+    # ------------------------------------------------------------------ #
+    #  Demo: Owner.filter_tasks — filter by pet name and/or completion    #
+    # ------------------------------------------------------------------ #
+    print("\n" + "=" * 50)
+    print("FILTER DEMO — Owner.filter_tasks()")
+    print("=" * 50)
+
+    # All tasks for Fido only
+    fido_tasks = owner.filter_tasks(pet_name="Fido")
+    print(f"\nAll tasks for Fido ({len(fido_tasks)}):")
+    for pet, task in fido_tasks:
+        status = "done" if task.completed else "pending"
+        print(f"  [{status}] {task.task_name} ({task.priority.value})")
+
+    # All incomplete tasks across every pet
+    all_pending = owner.filter_tasks(completed=False)
+    print(f"\nAll PENDING tasks across all pets ({len(all_pending)}):")
+    for pet, task in all_pending:
+        print(f"  {pet.name:10} {task.task_name} ({task.priority.value})")
+
+    # All completed tasks across every pet
+    all_done = owner.filter_tasks(completed=True)
+    print(f"\nAll COMPLETED tasks across all pets ({len(all_done)}):")
+    for pet, task in all_done:
+        print(f"  {pet.name:10} {task.task_name} ({task.priority.value})")
+
+    # Combine: completed tasks for Whiskers only
+    cat_done = owner.filter_tasks(pet_name="Whiskers", completed=True)
+    print(f"\nCompleted tasks for Whiskers only ({len(cat_done)}):")
+    for pet, task in cat_done:
+        print(f"  {task.task_name} ({task.priority.value})")
 
 
 if __name__ == "__main__":

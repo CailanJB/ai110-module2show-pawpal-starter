@@ -192,6 +192,26 @@ class Owner:
 
         return self.window_available(task.duration, date.today())
 
+    def filter_tasks(self, completed: Optional[bool] = None, pet_name: Optional[str] = None) -> List[Tuple[Pet, Task]]:
+        """Return (pet, task) pairs matching the given filters across all owned pets.
+
+        Args:
+            completed: If provided, only return tasks whose completed flag matches.
+            pet_name: If provided, only return tasks belonging to the pet with this name
+                      (case-insensitive).
+
+        Returns:
+            A list of (Pet, Task) tuples for every matching task.
+        """
+        results: List[Tuple[Pet, Task]] = []
+        for pet in self.pets:
+            if pet_name is not None and pet.name.lower() != pet_name.strip().lower():
+                continue
+            for task in pet.tasks:
+                if completed is None or task.completed == completed:
+                    results.append((pet, task))
+        return results
+
     def update_task(self, old_task: Task, new_task: Task) -> None:
         """Update an existing task with new values."""
         old_task.task_name = new_task.task_name
@@ -322,6 +342,28 @@ class Schedule:
         for task in self.unscheduled_tasks:
             explanation.append(f"Could not schedule '{task.task_name}' for {self.pet.name} (duration {task.duration} min). ")
         return explanation
+
+    def filter_tasks(self, completed: Optional[bool] = None, pet_name: Optional[str] = None) -> List[Task]:
+        """Return tasks matching the given filters.
+
+        Args:
+            completed: If provided, only return tasks whose completed flag matches.
+            pet_name: If provided, only return tasks when this schedule's pet name matches
+                      (case-insensitive). Returns an empty list if the pet doesn't match.
+
+        Returns:
+            A flat list of matching Task objects from both scheduled entries and
+            unscheduled_tasks.
+        """
+        if pet_name is not None and self.pet.name.lower() != pet_name.strip().lower():
+            return []
+
+        all_tasks = [entry.task for entry in self.entries] + list(self.unscheduled_tasks)
+
+        if completed is None:
+            return all_tasks
+
+        return [task for task in all_tasks if task.completed == completed]
 
     def validate_conflicts(self) -> bool:
         """Validate schedule against pet preferences and owner constraints."""
