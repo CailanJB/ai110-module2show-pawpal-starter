@@ -1,6 +1,21 @@
-from dataclasses import dataclass
-from typing import List
+from dataclasses import dataclass, field
+from typing import List, Tuple, Optional
 from datetime import datetime, time, date
+from enum import Enum
+
+
+class Priority(Enum):
+    """Task priority levels."""
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+
+
+@dataclass
+class TimeWindow:
+    """Represents a time window with start and end times."""
+    start: time
+    end: time
 
 
 @dataclass
@@ -11,6 +26,8 @@ class Pet:
     species: str
     health_conditions: List[str]
     care_preferences: List[str]
+    owner: Optional['Owner'] = None
+    type: str                           #type of pet
     
     def add_preferences(self, preference: str) -> None:
         """Add a care preference for the pet."""
@@ -30,16 +47,22 @@ class Task:
     """Represents a pet care task with its properties."""
     task_name: str
     duration: int
-    priority: str
+    priority: Priority
     category: str
+    frequency: str = "once"  # "once", "daily", "weekly"
+    preferred_time: Optional[TimeWindow] = None  # e.g., "walk in morning"
+    required_for_species: List[str] = field(default_factory=list)  # ["dog", "cat"]
+    repeat_count: int = 1  # how many times if recurring
 
 
 @dataclass
 class Owner:
     """Represents the pet owner with availability and scheduling constraints."""
     name: str
-    available_windows: List[tuple]
+    available_windows: List[TimeWindow]
     max_mins: int
+    pets: List[Pet] = field(default_factory=list)
+    work_hours: Optional[TimeWindow] = None  # e.g., 9-5 unavailable
     
     def available_minutes(self) -> int:
         """Calculate total available minutes from all windows."""
@@ -56,18 +79,35 @@ class Owner:
     def can_schedule(self, task: Task) -> bool:
         """Check if a task can be scheduled given current constraints."""
         pass
+    
+    def update_task(self, old_task: Task, new_task: Task) -> None:
+        """Update an existing task with new values."""
+        pass
+
+
+@dataclass
+class ScheduleEntry:
+    """Represents a single task within a daily schedule."""
+    task: Task
+    starttime: time
+    endtime: time
+    completed: bool = False
+    actual_start: Optional[time] = None
+    actual_end: Optional[time] = None
+    
+    def fit_task(self, task: Task) -> bool:
+        """Check if a task can fit in this time slot."""
+        pass
 
 
 @dataclass
 class Schedule:
-    """Represents a daily schedule with tasks and time slots."""
-    task: Task
-    starttime: time
-    endtime: time
-    
-    def fit_task(self, task: Task) -> bool:
-        """Check if a task can fit in the schedule time frame."""
-        pass
+    """Represents a complete daily schedule for a pet."""
+    pet: Pet
+    owner: Owner
+    plan_date: date
+    entries: List[ScheduleEntry] = field(default_factory=list)
+    unscheduled_tasks: List[Task] = field(default_factory=list)
     
     def generate_daily_plan(self, tasks: List[Task], pet: Pet, owner: Owner, date: date) -> None:
         """Generate a daily plan for a pet based on constraints."""
@@ -79,4 +119,12 @@ class Schedule:
     
     def remove_task(self) -> None:
         """Remove a task from the schedule."""
+        pass
+    
+    def explain(self) -> List[str]:
+        """Return reasoning for why tasks were scheduled or not scheduled."""
+        pass
+    
+    def validate_conflicts(self) -> bool:
+        """Validate schedule against pet preferences and owner constraints."""
         pass
