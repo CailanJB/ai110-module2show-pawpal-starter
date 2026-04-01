@@ -46,13 +46,66 @@ class Pet:
 class Task:
     """Represents a pet care task with its properties."""
     task_name: str
+    description: str
     duration: int
     priority: Priority
     category: str
     frequency: str = "once"  # "once", "daily", "weekly"
-    preferred_time: Optional[TimeWindow] = None  # e.g., "walk in morning"
+    preferred_time: Optional[TimeWindow] = None  # ideal time window, optional
     required_for_species: List[str] = field(default_factory=list)  # ["dog", "cat"]
-    repeat_count: int = 1  # how many times if recurring
+    repeat_count: int = 1  # number of repeats if recurring
+    completed: bool = False
+    last_completed: Optional[datetime] = None
+
+    def mark_complete(self, completed_at: Optional[datetime] = None) -> None:
+        """Mark this task as completed and optionally record completion time."""
+        self.completed = True
+        self.last_completed = completed_at or datetime.now()
+
+    def mark_incomplete(self) -> None:
+        """Mark this task as incomplete so it can be rescheduled."""
+        self.completed = False
+
+    def is_recurring(self) -> bool:
+        """Check if the task is recurring based on frequency or repeat_count."""
+        return self.frequency.lower() in {"daily", "weekly"} or self.repeat_count > 1
+
+    def next_due_status(self, reference: Optional[datetime] = None) -> str:
+        """Return a human-friendly due status for this task."""
+        if not reference:
+            reference = datetime.now()
+
+        if self.completed and self.last_completed:
+            if self.frequency.lower() == "daily":
+                return "due tomorrow" if reference.date() == self.last_completed.date() else "due today"
+            if self.frequency.lower() == "weekly":
+                delta = (reference.date() - self.last_completed.date()).days
+                return "due soon" if delta >= 6 else "up to date"
+            return "completed"
+
+        if self.frequency.lower() == "once":
+            return "pending"
+
+        return "pending recurring"
+
+    def is_due(self, reference: Optional[datetime] = None) -> bool:
+        """Determine whether this task should be prepared for scheduling at a moment."""
+        if not reference:
+            reference = datetime.now()
+
+        if self.frequency.lower() == "once":
+            return not self.completed
+
+        if self.last_completed is None:
+            return True
+
+        if self.frequency.lower() == "daily":
+            return reference.date() > self.last_completed.date()
+
+        if self.frequency.lower() == "weekly":
+            return (reference.date() - self.last_completed.date()).days >= 7
+
+        return True
 
 
 @dataclass
