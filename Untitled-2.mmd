@@ -1,0 +1,226 @@
+---
+query: >
+  #BRAINSTORMED: START
+
+  Main objectes needed:
+
+  Pet class and pet objects.
+
+  Pet class will be a super class. 
+
+  attributes for pet objects:
+
+  - name(name of pet)
+
+  - age
+
+  - species
+
+  - health_conditons(sick,healthy)
+
+  - care_preferences(etcL "walks in the morning)
+
+  .Methods:
+
+  - addpreferences(preference)
+
+  - removeprefernce(prefernece)
+
+  - needs_at_time(datetime): returns list of required task at time datatime.
+
+  Task class: Task objects, describe properties of a task
+
+
+  attributes for task class:
+
+  - task_name( walk,bathe,groom)good for ui
+
+  - duration(how long to complete task)
+
+  - priority(priority of task)
+
+  - category(type of task)
+
+
+  Owner class: basic owner info
+
+  attributes:
+
+  - name
+
+  - available_windows(time they are free)(attribute is of type Available_Window)
+
+  - max_mins(time willing to commit to a task)
+
+  Methods:
+
+  - available_minutes
+
+  - window_available(duration,date): returns true if free for duration time on
+  day date
+
+  - deduct_time(duration,date): updates availability
+
+  - can_schedule(task): boolean: returns true if that task can be scedhuled. 
+
+
+  AvailableWindow Class:
+
+  Attributes:
+
+  - starttime(start of window)
+
+  - endtime(end of window)
+
+  Methods:
+
+  updateWindow(window): update/change start and end time
+
+  - overlap(window): returns boolean: returns whther or not the window overlaps
+  with another task.
+
+
+
+  Schedule Class: Schedule objects
+
+  attributes
+
+  - task(task varibale of type task, the task to be done)
+
+  - starttime
+
+  - endtime
+
+  Methods:
+
+  - fit_task(task): can a task be fit in the window time frame
+
+  - generate_daily_plan(taks,pet,owner,date): genrates a plan for a pet on a
+  certain day
+
+  - addTask(): add task to scheudle
+
+  - removeTask(): remove task from schedule
+
+  #BRAINSTROMED: END
+references:
+  - "File: /reflection.md"
+  - >+
+    Reference: <skills>
+
+    Here is a list of skills that contain domain specific knowledge on a variety
+    of topics.
+
+    Each skill comes with a description of the topic and a file path that
+    contains the detailed instructions.
+
+    When a user asks you to perform a task that falls within the domain of a
+    skill, use the #tool:readFile tool to acquire the full instructions from the
+    file URI.
+
+    <skill>
+
+    <name>agent-customization</name>
+
+    <description>**WORKFLOW SKILL** — Create, update, review, fix, or debug VS
+    Code agent customization files (.instructions.md, .prompt.md, .agent.md,
+    SKILL.md, copilot-instructions.md, AGENTS.md). USE FOR: saving coding
+    preferences; troubleshooting why instructions/skills/agents are ignored or
+    not invoked; configuring applyTo patterns; defining tool restrictions;
+    creating custom agent modes or specialized workflows; packaging domain
+    knowledge; fixing YAML frontmatter syntax. DO NOT USE FOR: general coding
+    questions (use default agent); runtime debugging or error diagnosis; MCP
+    server configuration (use MCP docs directly); VS Code extension development.
+    INVOKES: file system tools (read/write customization files), ask-questions
+    tool (interview user for requirements), subagents for codebase exploration.
+    FOR SINGLE OPERATIONS: For quick YAML frontmatter fixes or creating a single
+    file from a known pattern, edit the file directly — no skill
+    needed.</description>
+
+    <file>copilot-skill:/agent-customization/SKILL.md</file>
+
+    </skill>
+
+    </skills>
+
+
+
+    <agents>
+
+    Here is a list of agents that can be used when running a subagent.
+
+    Each agent has optionally a description with the agent's purpose and
+    expertise. When asked to run a subagent, choose the most appropriate agent
+    from this list.
+
+    Use the #tool:runSubagent tool with the agent name to run the subagent.
+
+    <agent>
+
+    <name>Explore</name>
+
+    <description>Fast read-only codebase exploration and Q&A subagent. Prefer
+    over manually chaining multiple search and file-reading operations to avoid
+    cluttering the main conversation. Safe to call in parallel. Specify
+    thoroughness: quick, medium, or thorough.</description>
+
+    <argumentHint>Describe WHAT you're looking for and desired thoroughness
+    (quick/medium/thorough)</argumentHint>
+
+    </agent>
+
+    </agents>
+
+generationTime: 2026-04-01T03:14:25.640Z
+---
+classDiagram
+    class Pet {
+      +String name
+      +int age
+      +String species
+      +String health_conditions
+      +List care_preferences
+      +addPreference(pref)
+      +removePreference(pref)
+      +needsAtTime(dt) : List<Task>
+    }
+
+    class Task {
+      +String task_name
+      +int duration
+      +int priority
+      +String category
+    }
+
+    class Owner {
+      +String name
+      +List<AvailableWindow> available_windows
+      +int max_mins
+      +availableMinutes() : int
+      +windowAvailable(duration, date) : bool
+      +deductTime(duration, date)
+      +canSchedule(task) : bool
+    }
+
+    class AvailableWindow {
+      +datetime starttime
+      +datetime endtime
+      +updateWindow(window)
+      +overlap(window) : bool
+    }
+
+    class Schedule {
+      +Task task
+      +datetime starttime
+      +datetime endtime
+      +fitTask(task) : bool
+      +generateDailyPlan(tasks, pet, owner, date)
+      +addTask(task)
+      +removeTask(task)
+    }
+
+    Pet "1" -- "*" Task : needs / tasks
+    Owner "1" -- "*" AvailableWindow : has
+    Schedule "1" -- "1" Task : schedules
+    Schedule "1" -- "1" Owner : for
+    Schedule "1" -- "1" Pet : for
