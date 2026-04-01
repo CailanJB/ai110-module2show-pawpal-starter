@@ -99,6 +99,7 @@ def main() -> None:
     today = date.today()
     schedules: dict[str, Schedule] = {}
 
+    #iteration
     for pet in owner.pets:
         schedule = Schedule(pet=pet, owner=owner, plan_date=today)
         schedule.generate_daily_plan()
